@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420" font-family="ui-sans-serif,system-ui,sans-serif">
+<rect width="900" height="420" fill="#ffffff"/>
+<text x="64" y="28" font-size="16" font-weight="600" fill="#374151">rabbot capacity — resident memory and DB size over time</text>
+<line x1="64" y1="364" x2="836" y2="364" stroke="#e5e7eb" stroke-width="1"/>
+<text x="56" y="368" font-size="11" text-anchor="end" fill="#2563eb">0</text>
+<text x="844" y="368" font-size="11" text-anchor="start" fill="#16a34a">0</text>
+<line x1="64" y1="285" x2="836" y2="285" stroke="#e5e7eb" stroke-width="1"/>
+<text x="56" y="289" font-size="11" text-anchor="end" fill="#2563eb">25</text>
+<text x="844" y="289" font-size="11" text-anchor="start" fill="#16a34a">12.5</text>
+<line x1="64" y1="206" x2="836" y2="206" stroke="#e5e7eb" stroke-width="1"/>
+<text x="56" y="210" font-size="11" text-anchor="end" fill="#2563eb">50</text>
+<text x="844" y="210" font-size="11" text-anchor="start" fill="#16a34a">25</text>
+<line x1="64" y1="127" x2="836" y2="127" stroke="#e5e7eb" stroke-width="1"/>
+<text x="56" y="131" font-size="11" text-anchor="end" fill="#2563eb">75</text>
+<text x="844" y="131" font-size="11" text-anchor="start" fill="#16a34a">37.5</text>
+<line x1="64" y1="48" x2="836" y2="48" stroke="#e5e7eb" stroke-width="1"/>
+<text x="56" y="52" font-size="11" text-anchor="end" fill="#2563eb">100</text>
+<text x="844" y="52" font-size="11" text-anchor="start" fill="#16a34a">50</text>
+<line x1="64" y1="364" x2="836" y2="364" stroke="#9ca3af" stroke-width="1"/>
+<text x="64" y="384" font-size="11" text-anchor="middle" fill="#374151">0s</text>
+<text x="257" y="384" font-size="11" text-anchor="middle" fill="#374151">42.5s</text>
+<text x="450" y="384" font-size="11" text-anchor="middle" fill="#374151">85s</text>
+<text x="643" y="384" font-size="11" text-anchor="middle" fill="#374151">127.5s</text>
+<text x="836" y="384" font-size="11" text-anchor="middle" fill="#374151">170s</text>
+<polyline fill="none" stroke="#2563eb" stroke-width="2" points="64,297.64 109.41,223.01 154.82,177.14 200.24,257.03 245.65,177.98 291.06,160.59 336.47,167.75 381.88,182.72 427.29,182.57 472.71,181.94 518.12,181.94 563.53,182.72 608.94,181.72 654.35,215.7 699.76,215.52 745.18,214.33 790.59,253.4 836,253.25"/>
+<circle cx="64" cy="297.64" r="2" fill="#2563eb"/><circle cx="109.41" cy="223.01" r="2" fill="#2563eb"/><circle cx="154.82" cy="177.14" r="2" fill="#2563eb"/><circle cx="200.24" cy="257.03" r="2" fill="#2563eb"/><circle cx="245.65" cy="177.98" r="2" fill="#2563eb"/><circle cx="291.06" cy="160.59" r="2" fill="#2563eb"/><circle cx="336.47" cy="167.75" r="2" fill="#2563eb"/><circle cx="381.88" cy="182.72" r="2" fill="#2563eb"/><circle cx="427.29" cy="182.57" r="2" fill="#2563eb"/><circle cx="472.71" cy="181.94" r="2" fill="#2563eb"/><circle cx="518.12" cy="181.94" r="2" fill="#2563eb"/><circle cx="563.53" cy="182.72" r="2" fill="#2563eb"/><circle cx="608.94" cy="181.72" r="2" fill="#2563eb"/><circle cx="654.35" cy="215.7" r="2" fill="#2563eb"/><circle cx="699.76" cy="215.52" r="2" fill="#2563eb"/><circle cx="745.18" cy="214.33" r="2" fill="#2563eb"/><circle cx="790.59" cy="253.4" r="2" fill="#2563eb"/><circle cx="836" cy="253.25" r="2" fill="#2563eb"/>
+<polyline fill="none" stroke="#16a34a" stroke-width="2" points="64,363.98 109.41,317.39 154.82,275.84 200.24,232.07 245.65,177.24 291.06,129.74 336.47,75.23 381.88,59.45 427.29,52.67 472.71,52.67 518.12,52.67 563.53,52.67 608.94,52.67 654.35,52.67 699.76,52.67 745.18,52.57 790.59,52.57 836,52.57"/>
+<circle cx="64" cy="363.98" r="2" fill="#16a34a"/><circle cx="109.41" cy="317.39" r="2" fill="#16a34a"/><circle cx="154.82" cy="275.84" r="2" fill="#16a34a"/><circle cx="200.24" cy="232.07" r="2" fill="#16a34a"/><circle cx="245.65" cy="177.24" r="2" fill="#16a34a"/><circle cx="291.06" cy="129.74" r="2" fill="#16a34a"/><circle cx="336.47" cy="75.23" r="2" fill="#16a34a"/><circle cx="381.88" cy="59.45" r="2" fill="#16a34a"/><circle cx="427.29" cy="52.67" r="2" fill="#16a34a"/><circle cx="472.71" cy="52.67" r="2" fill="#16a34a"/><circle cx="518.12" cy="52.67" r="2" fill="#16a34a"/><circle cx="563.53" cy="52.67" r="2" fill="#16a34a"/><circle cx="608.94" cy="52.67" r="2" fill="#16a34a"/><circle cx="654.35" cy="52.67" r="2" fill="#16a34a"/><circle cx="699.76" cy="52.67" r="2" fill="#16a34a"/><circle cx="745.18" cy="52.57" r="2" fill="#16a34a"/><circle cx="790.59" cy="52.57" r="2" fill="#16a34a"/><circle cx="836" cy="52.57" r="2" fill="#16a34a"/>
+<rect x="616" y="52" width="12" height="12" fill="#2563eb"/><text x="632" y="63" font-size="12" fill="#374151">VmRSS (MiB)</text><rect x="726" y="52" width="12" height="12" fill="#16a34a"/><text x="742" y="63" font-size="12" fill="#374151">DB file (MiB)</text>
+</svg>

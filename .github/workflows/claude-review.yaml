@@ -1,0 +1,107 @@
+name: Claude PR Review
+
+# Advisory, diff-scoped PR review by Claude. Posts inline comments on the exact
+# changed lines plus one summary verdict, and a guard step makes a green check
+# provably mean "a real review ran" (not "the action exited 0 having posted
+# nothing"). Design + rationale:
+#   docs/superpowers/specs/2026-06-05-claude-pr-review-redesign-design.md
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write # inline + summary comments live under the pulls API
+  id-token: write # required by claude-code-action to mint its OIDC token
+  # `issues: write` intentionally dropped — least privilege; PR review comments
+  # only need `pull-requests: write`.
+
+jobs:
+  review:
+    # Don't spend a review on work-in-progress; review once it's ready.
+    # Dependabot PRs are mechanical version bumps gated by the required `ci`
+    # check — a Claude review adds cost, not signal, so they're excluded.
+    if: ${{ github.event.pull_request.draft == false && github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    environment: Claude # CLAUDE_CODE_OAUTH_TOKEN is stored as an environment secret here
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Claude review
+        id: review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # track_progress gives a live tracking comment (progress checklist ->
+          # verdict) per run; use_sticky_comment makes the action reuse ONE
+          # comment across runs (each push edits it in place) instead of posting a
+          # fresh summary per push. Together: live progress + no per-push pile-up.
+          # (The old hand-rolled `gh pr comment` verdict is gone.)
+          track_progress: true
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review ONLY this PR's changes — the added/modified lines and their
+            immediate context. Run `gh pr diff` to see exactly what changed. Do
+            NOT sweep the whole repo or report pre-existing issues in untouched
+            code. If you spot something serious outside the diff, give it ONE
+            line in the summary — never an inline comment.
+
+            Look for: correctness bugs, security issues, Go idiom problems, and
+            the non-negotiable CLAUDE.md conventions (CGO_ENABLED=0 static builds
+            / no cgo deps like mattn/go-sqlite3, forward-only migrations,
+            loopback-only control server with constant-time token auth, no
+            secrets or webhook URLs in logs). High-signal only — important
+            issues, not nits.
+
+            Posting (these GitHub comments are the ONLY things you post):
+            - Specific issue -> INLINE comment on the exact line via
+              mcp__github_inline_comment__create_inline_comment (confirmed: true).
+            - Summary = your final message (track_progress posts it): clean ->
+              "✅ No blocking issues — green to merge."; otherwise a one-line
+              tally ("⚠️ 2 important, 1 nit") + a short bulleted list.
+            Don't submit review text as a chat message. If a command fails, fix
+            the obvious problem once and move on — do not retry in a loop.
+          # Give the model exactly the tools a diff review needs and no more:
+          # the inline-comment MCP tool, plus read-only `gh` for the diff/PR and
+          # the summary comment. A narrow allow-list (gh pr comment only) was the
+          # root cause of "green but nothing posted" — the model burned turns on
+          # denied calls. A broad `gh *` would permit destructive subcommands.
+          claude_args: |
+            --max-turns 30
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+
+      # green == reviewed: claude-code-action can exit 0 even when the model
+      # aborted internally or spent every turn on denied tools and posted
+      # nothing. Its `execution_file` output is the run's result JSON; fail the
+      # job if the run errored or hit any permission denial, so a green check is
+      # trustworthy on its own.
+      - name: Assert the review actually ran
+        if: ${{ !cancelled() }}
+        env:
+          F: ${{ steps.review.outputs.execution_file }}
+        run: |
+          set -euo pipefail
+          if [ -z "$F" ] || [ ! -f "$F" ]; then
+            echo "::error::no execution log — the review never ran"
+            exit 1
+          fi
+          # Framing-agnostic: works whether the log is a JSON array or NDJSON.
+          res=$(jq -sc '[.. | objects | select(.type=="result")] | last' "$F")
+          if [ "$res" = "null" ]; then
+            echo "::error::no result record — the review aborted before finishing"
+            exit 1
+          fi
+          err=$(jq -r '.is_error // false' <<<"$res")
+          den=$(jq -r '.permission_denials_count // 0' <<<"$res")
+          echo "review result: is_error=$err permission_denials=$den"
+          if [ "$err" = "true" ] || [ "$den" -gt 0 ]; then
+            echo "::error::review did not complete cleanly (is_error=$err, permission_denials=$den) — re-run"
+            exit 1
+          fi

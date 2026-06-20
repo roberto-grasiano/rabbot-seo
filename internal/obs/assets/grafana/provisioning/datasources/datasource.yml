@@ -1,0 +1,16 @@
+# Grafana datasource provisioning — the local Prometheus.
+#
+# Points Grafana at the Prometheus pinned to 127.0.0.1:9090 in
+# docker-compose.observability.yml. With network_mode: host both containers
+# share the host loopback, so localhost resolves correctly.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: rabbot-prometheus
+    access: proxy
+    url: http://127.0.0.1:9090
+    isDefault: true
+    editable: false

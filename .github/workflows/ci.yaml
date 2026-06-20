@@ -1,0 +1,252 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # --- Static analysis (ubuntu only) -----------------------------------------
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          # >= 1.26.4 clears reachable stdlib CVEs GO-2026-5039 (net/textproto)
+          # and GO-2026-5037 (crypto/x509), both reached via the control server's
+          # http.Server.Serve. go.mod's `go 1.26` directive is satisfied by it.
+          go-version: "1.26.4"
+          check-latest: false
+
+      # CGO_ENABLED=0 is the production build/audit constraint (the shipped binary
+      # is fully static). Scope it to the static-analysis steps.
+      - name: Vet
+        run: go vet ./...
+        env:
+          CGO_ENABLED: "0"
+
+      # golangci-lint must be COMPILED with the runner's Go toolchain. The
+      # action's prebuilt release binaries lag Go releases, and golangci-lint
+      # hard-refuses to run when its build-Go is older than go.mod's
+      # `go 1.26` directive (exit 3). `go install` builds it with the 1.26.4
+      # toolchain set up above. Version is pinned to match what developers run
+      # locally; CI invokes `make lint` so the command + config are identical to
+      # local (the Makefile self-locates the binary in $(go env GOPATH)/bin).
+      # Cache the compiled binary so `go install` is skipped on hits. The key
+      # pins golangci-lint + Go versions, so it only rebuilds when either bumps.
+      - name: Cache golangci-lint binary
+        uses: actions/cache@v5
+        with:
+          path: ~/go/bin/golangci-lint
+          key: golangci-lint-2.12.2-go1.26.4-${{ runner.os }}
+
+      - name: Lint
+        run: |
+          [ -x "$HOME/go/bin/golangci-lint" ] || \
+            go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
+          make lint
+        env:
+          CGO_ENABLED: "0"
+
+  # --- Two-phase OS matrix selection -----------------------------------------
+  # The macOS/Windows legs are gated on the repo's visibility phase. While the
+  # repo is private they run on push-to-main (and manual dispatch) only, and PRs
+  # gate on the ubuntu leg alone; from the public flip onward the full matrix
+  # runs on every PR too — with zero workflow edits at flip time. The GitHub
+  # `matrix` context is NOT available in a job-level `if`, so the per-leg phase
+  # gate is encoded here as a computed matrix instead: this job emits the OS list
+  # as JSON, and `test` consumes it via fromJSON.
+  matrix-os:
+    runs-on: ubuntu-latest
+    outputs:
+      os: ${{ steps.pick.outputs.os }}
+    steps:
+      - name: Pick OS list for this phase
+        id: pick
+        run: |
+          set -euo pipefail
+          if [ '${{ github.event_name }}' != 'pull_request' ] || \
+             [ '${{ github.event.repository.private }}' != 'true' ]; then
+            # push / dispatch, or any event once public: full 3-OS matrix.
+            echo 'os=["ubuntu-latest","macos-latest","windows-latest"]' >> "$GITHUB_OUTPUT"
+          else
+            # private-repo PR: ubuntu leg only (macOS/Windows deferred to the
+            # push-to-main run for the merge SHA).
+            echo 'os=["ubuntu-latest"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  # --- Race tests across the OS matrix ---------------------------------------
+  test:
+    needs: matrix-os
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(needs.matrix-os.outputs.os) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          # >= 1.26.4 clears reachable stdlib CVEs GO-2026-5039 (net/textproto)
+          # and GO-2026-5037 (crypto/x509), both reached via the control server's
+          # http.Server.Serve. go.mod's `go 1.26` directive is satisfied by it.
+          go-version: "1.26.4"
+          check-latest: false
+
+      # -race requires cgo, so this job runs with CGO_ENABLED=1. windows-latest
+      # ships mingw-w64 and macos-latest clang, so the race builds work on all
+      # three legs. The ubuntu leg additionally collects an atomic-mode coverage
+      # profile (atomic is required under -race) for the informational Codecov
+      # upload below.
+      - name: Test (ubuntu, with coverage)
+        if: matrix.os == 'ubuntu-latest'
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+        env:
+          CGO_ENABLED: "1"
+
+      - name: Test (macOS / Windows)
+        if: matrix.os != 'ubuntu-latest'
+        # bash shell directive so the step runs identically on windows-latest's
+        # default shell (which is PowerShell otherwise).
+        shell: bash
+        run: go test -race ./...
+        env:
+          CGO_ENABLED: "1"
+
+      # Coverage is informational only (no threshold gate): fail_ci_if_error is
+      # false so a Codecov hiccup never reds the required `ci` check. Uploads from
+      # the ubuntu leg only — merging cross-OS profiles buys noise, not signal.
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v7
+        with:
+          files: coverage.out
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      # Bounded fuzz exploration on the five hostile-input parsers (HTML, robots,
+      # sitemap XML, URL host, JSON-LD rich-result validation). Seeds + committed crashers already replay under
+      # the -race Test step above; this adds bounded random exploration only.
+      # CGO_ENABLED=0 because fuzz instrumentation is pure Go and -race is
+      # unnecessary here. Budget ~= 5 x FUZZTIME + builds (<= 3 min). Ubuntu only.
+      - name: Fuzz smoke
+        if: matrix.os == 'ubuntu-latest'
+        run: make fuzz-smoke
+        env:
+          CGO_ENABLED: "0"
+
+      # Compile-and-run smoke for every package's benchmarks: one iteration each
+      # (-benchtime=1x), so a bench that stops compiling or panics on the shipped
+      # code path is caught here. This is COMPILE+RUN ONLY — no perf assertions:
+      # shared GitHub runners are far too noisy for thresholds (real numbers come
+      # from `make bench` on a quiet host, published in docs/PERFORMANCE.md).
+      # CGO_ENABLED=0 because benches reflect the shipped static binary (the
+      # pure-Go modernc.org/sqlite write path is the perf design we measure
+      # honestly). Ubuntu only — no mac/win minutes on a smoke. Budget: seconds.
+      - name: Bench smoke
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          go test -run '^$' -bench . -benchtime=1x ./...
+          # Rot-guard: the loopback-capable bench daemon (scripts/bench/benchdaemon)
+          # is behind the `benchdaemon` build tag, so the untagged smoke above never
+          # compiles it. Build it explicitly so the tagged seam can't silently rot.
+          go build -tags benchdaemon -o /dev/null ./scripts/bench/benchdaemon
+        env:
+          CGO_ENABLED: "0"
+
+  # --- Cross-compile every shipped GOOS/GOARCH pair --------------------------
+  crosscompile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          # >= 1.26.4 clears reachable stdlib CVEs GO-2026-5039 (net/textproto)
+          # and GO-2026-5037 (crypto/x509), both reached via the control server's
+          # http.Server.Serve. go.mod's `go 1.26` directive is satisfied by it.
+          go-version: "1.26.4"
+          check-latest: false
+
+      # CGO_ENABLED=0 go build ./... for all 6 .goreleaser.yaml targets
+      # (linux/darwin/windows x amd64/arm64), so compile-rot on a non-runner
+      # target (linux/arm64, windows/arm64, darwin/amd64) can't hide until tag
+      # time. Pure compile check — no test run here.
+      - name: Cross-compile all targets
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+          for target in \
+            linux/amd64 linux/arm64 \
+            darwin/amd64 darwin/arm64 \
+            windows/amd64 windows/arm64; do
+            os="${target%/*}"
+            arch="${target#*/}"
+            echo "::group::build $os/$arch"
+            GOOS="$os" GOARCH="$arch" go build ./...
+            echo "::endgroup::"
+          done
+
+  # --- Dependency / stdlib advisory scan -------------------------------------
+  vulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          # >= 1.26.4 clears reachable stdlib CVEs GO-2026-5039 (net/textproto)
+          # and GO-2026-5037 (crypto/x509), both reached via the control server's
+          # http.Server.Serve. go.mod's `go 1.26` directive is satisfied by it.
+          go-version: "1.26.4"
+          check-latest: false
+
+      - name: govulncheck
+        # govulncheck is an analysis tool, never a build dependency (no go.mod
+        # change, no new module). Deliberately UNPINNED (@latest): it must track
+        # the live vuln-DB schema. Mirrors `make vulncheck` exactly (lint parity).
+        run: make vulncheck
+
+  # --- Required-check aggregator (branch protection gates on this) -----------
+  # Branch protection on `main` requires the `ci` check. Keeping the aggregator
+  # named `ci` preserves that required check with zero settings churn. Legs
+  # skipped by the phase condition count as success (result == 'skipped').
+  ci:
+    needs: [lint, matrix-os, test, crosscompile, vulncheck]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any dependency failed or was cancelled
+        # join(...) with no separator yields a comma-delimited list of each
+        # dependency's result. A leg skipped by the phase condition reports
+        # 'skipped' and counts as success; anything else (failure/cancelled) reds
+        # the aggregator — and thus the required `ci` check.
+        run: |
+          set -euo pipefail
+          results="${{ join(needs.*.result) }}"
+          echo "dependency results: $results"
+          IFS=',' read -ra arr <<< "$results"
+          for r in "${arr[@]}"; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "::error::a CI dependency reported '$r'"; exit 1 ;;
+            esac
+          done
+          echo "all CI dependencies passed (or were skipped)."

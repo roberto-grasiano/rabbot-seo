@@ -1,0 +1,18 @@
+# Grafana dashboard provisioning — load the committed Rabbot dashboard.
+#
+# Grafana reads dashboard JSON from the mounted path on startup, so the
+# Rabbot dashboard appears with no manual import. The JSON lives at
+# /var/lib/grafana/dashboards/rabbot.json (mounted from ./grafana/dashboards).
+
+apiVersion: 1
+
+providers:
+  - name: Rabbot
+    orgId: 1
+    folder: Rabbot
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

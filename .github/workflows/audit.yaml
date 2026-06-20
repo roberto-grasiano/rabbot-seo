@@ -1,0 +1,36 @@
+name: Audit
+
+# Advisories publish against unchanged code, so a merge-time-only scan still
+# rots. This reruns the dependency/stdlib advisory scan against `main` weekly
+# (and on demand) so a new advisory against an idle tree fails loudly instead
+# of going unnoticed until the next push.
+on:
+  schedule:
+    # Mondays at 06:17 UTC (off the top of the hour to dodge cron contention).
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          # >= 1.26.4 clears reachable stdlib CVEs GO-2026-5039 (net/textproto)
+          # and GO-2026-5037 (crypto/x509), both reached via the control server's
+          # http.Server.Serve. go.mod's `go 1.26` directive is satisfied by it.
+          go-version: "1.26.4"
+          check-latest: false
+
+      - name: govulncheck
+        # Same step CI runs (lint-parity). govulncheck is an analysis tool, never
+        # a build dependency; deliberately UNPINNED (@latest) to track the live
+        # vuln-DB schema.
+        run: make vulncheck

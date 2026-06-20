@@ -1,0 +1,91 @@
+# docker-compose.observability.yml — Rabbot-SEO self-observability sidecar
+#
+# Provisioned, not clicked: this brings up Prometheus + Grafana already wired to
+# scrape the daemon's read-only /metrics endpoint and to render the committed
+# Rabbot dashboard. Rabbot itself NEVER runs docker — you (or an agent on your
+# behalf) run the one command below.
+#
+# Topology (Linux VPS — the default deployment target):
+#   - Both services run with `network_mode: host` so they share the host's
+#     network namespace. This is what lets Prometheus reach the daemon's
+#     loopback `127.0.0.1:9464` /metrics bind — a Docker bridge network cannot
+#     reach a host-127.0.0.1 listener.
+#   - Prometheus is pinned to `--web.listen-address=127.0.0.1:9090`: it answers
+#     only on loopback, never the public interface.
+#   - Grafana is the only service that answers non-loopback, on `:3000`, behind
+#     its own login.
+#
+# CREDENTIALS WARNING: Grafana ships with the stock admin/admin login and forces
+# a password change on first sign-in. No password is generated into this file
+# (no secrets in committed artifacts). Change it immediately — and because
+# Grafana is the one non-loopback surface, do not expose :3000 to the public
+# internet without a reverse proxy / firewall in front of it.
+#
+# Bring it up:
+#   docker compose -f docker-compose.observability.yml up -d
+# Then open the dashboard at http://localhost:3000 (admin/admin on first login).
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: rabbot-prometheus
+    network_mode: host
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.listen-address=127.0.0.1:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: rabbot-grafana
+    network_mode: host
+    restart: unless-stopped
+    # Stock admin/admin with a forced first-login change (see the credentials
+    # warning above). No GF_SECURITY_ADMIN_PASSWORD override — no secret is
+    # baked into this committed file.
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+# ---------------------------------------------------------------------------
+# Variant: rabbot-in-Docker
+#
+# If you run the Rabbot daemon itself inside this compose project (rather than
+# as a host service), drop `network_mode: host`, put all three services on a
+# shared bridge network, scrape the daemon by its service name, and bind the
+# daemon's metrics listener container-private:
+#
+#   metrics.addr: "0.0.0.0:9464"   # in the daemon's config.yaml (container-only)
+#
+# services:
+#   rabbot:
+#     image: your-rabbot-image:latest
+#     networks: [obs]
+#     # ... daemon config mounting metrics.addr "0.0.0.0:9464" ...
+#   prometheus:
+#     image: prom/prometheus:latest
+#     networks: [obs]
+#     command:
+#       - "--config.file=/etc/prometheus/prometheus.yml"
+#     volumes:
+#       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+#     # In prometheus.yml, scrape `rabbot:9464` instead of `127.0.0.1:9464`.
+#   grafana:
+#     image: grafana/grafana:latest
+#     networks: [obs]
+#     ports: ["3000:3000"]
+#     volumes:
+#       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+#       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+#
+# networks:
+#   obs:
+# ---------------------------------------------------------------------------

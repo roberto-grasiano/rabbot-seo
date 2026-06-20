@@ -1,0 +1,41 @@
+# Run the Rabbot-SEO daemon 24/7 in Docker.
+#
+# First-time setup (the image is nonroot uid 65532, so the bind-mounted dirs
+# must be writable by it, and you need a config before the daemon can run):
+#
+#   mkdir -p data config
+#   sudo chown -R 65532:65532 data config
+#   docker compose run --rm rabbot init \
+#       --contact-email you@you.example \
+#       --site https://example.com \
+#       --i-am-authorized
+#   docker compose up -d
+#
+# Logs:    docker compose logs -f
+# Status:  docker compose exec rabbot rabbot status
+# Verify:  docker compose exec rabbot rabbot verify https://example.com
+#
+# Connect Claude to a containerized daemon: use `docker exec` as the MCP command
+# (same idea as the SSH transport) —
+#   { "mcpServers": { "rabbot": {
+#       "command": "docker", "args": ["exec", "-i", "rabbot", "rabbot", "mcp"] } } }
+
+services:
+  rabbot:
+    image: ghcr.io/roberto-grasiano/rabbot-seo:latest
+    container_name: rabbot
+    restart: unless-stopped
+    environment:
+      # adrg/xdg resolves the config/data dirs from these; the app writes to
+      # <XDG_CONFIG_HOME>/rabbot/config.yaml and <XDG_DATA_HOME>/rabbot/.
+      - XDG_CONFIG_HOME=/config
+      - XDG_DATA_HOME=/data
+      # Keep your Slack webhook out of the file; reference it as
+      # ${RABBOT_SLACK_WEBHOOK} in config.yaml and set it here / in a .env.
+      # - RABBOT_SLACK_WEBHOOK=${RABBOT_SLACK_WEBHOOK}
+    volumes:
+      - ./data:/data
+      - ./config:/config
+    # The loopback control plane (127.0.0.1:7777) is intentionally NOT published —
+    # there is nothing for the network to reach. Drive the daemon via
+    # `docker compose exec` or the docker-exec MCP transport above.

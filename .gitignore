@@ -1,0 +1,48 @@
+# Build artifacts
+/dist/
+/rabbot
+/rabbot.exe
+# scripts/bench dev-tool binaries, if built at the repo root without -o
+/corpussite
+/rsschart
+/benchdaemon
+*.test
+*.out
+
+# Benchmark / capacity-harness scratch (numbers are published in docs/PERFORMANCE.md
+# from a quiet host; the raw runs + benchstat baselines stay local). `make bench`
+# writes bench.txt; the capacity harness writes capacity-N.csv. NOTE: the committed
+# assets/capacity-rss.svg is intentionally NOT matched here — keep the ignores
+# narrow (no bare *.csv / *.svg, which would trap committed assets).
+bench*.txt
+old.txt
+new.txt
+capacity-*.csv
+.benchscratch/
+
+# Local runtime data
+*.db
+*.db-wal
+*.db-shm
+control.token
+instance.key
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Brainstorm scratch (visual companion mockups)
+.superpowers/
+
+# Local strategy/report artifacts (private working docs — never publish)
+/rabbot-*.html
+/rabbot-*.md
+
+# Local agent/skill tooling (not part of the project)
+/.agents/
+/.claude/skills/
+/.claude/workflows/
+/.claude/scheduled_tasks.lock
+/skills-lock.json

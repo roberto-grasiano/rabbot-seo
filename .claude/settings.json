@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go vet:*)",
+      "Bash(go version)",
+      "Bash(go test:*)",
+      "Bash(go build:*)",
+      "Bash(go mod:*)",
+      "Bash(gofmt:*)",
+      "Bash(make:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-migrations.sh"
+          },
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-secrets.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gofmt.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
