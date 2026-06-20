@@ -1,0 +1,234 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "graphTooltip": 0,
+  "schemaVersion": 39,
+  "tags": ["rabbot", "seo"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "",
+  "title": "Rabbot-SEO",
+  "uid": "rabbot-seo",
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Fetch rate (by class)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "sum by (class) (rate(rabbot_fetches_total[5m]))",
+          "legendFormat": "{{class}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Error rate (non-ok fetch classes)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "sum by (class) (rate(rabbot_fetches_total{class!=\"ok\"}[5m]))",
+          "legendFormat": "{{class}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Fetch duration (p50 / p95)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(rabbot_fetch_duration_seconds_bucket[5m])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(rabbot_fetch_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Cosmetic vs substantive changes",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "sum by (class) (rate(rabbot_changes_total[15m]))",
+          "legendFormat": "{{class}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Alert dispatch success %",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "sum(rate(rabbot_alerts_dispatched_total{outcome=\"ok\"}[1h])) / clamp_min(sum(rate(rabbot_alerts_dispatched_total[1h])), 1)",
+          "legendFormat": "success"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Digest entries dropped",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "sum(increase(rabbot_digest_dropped_total[1h]))",
+          "legendFormat": "dropped"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Build info",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
+      "options": { "textMode": "name" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "rabbot_build_info",
+          "legendFormat": "{{version}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Crawls in flight & due backlog",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "rabbot_crawls_in_flight",
+          "legendFormat": "in flight"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "rabbot_due_urls",
+          "legendFormat": "due"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Database size",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "rabbot_db_size_bytes",
+          "legendFormat": "db size"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Process RSS",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "process_resident_memory_bytes",
+          "legendFormat": "rss"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Goroutines",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 32 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "go_goroutines",
+          "legendFormat": "goroutines"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "GC pause (p99)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 32 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "rabbot-prometheus" },
+          "expr": "go_gc_duration_seconds{quantile=\"1\"}",
+          "legendFormat": "gc p99"
+        }
+      ]
+    }
+  ]
+}

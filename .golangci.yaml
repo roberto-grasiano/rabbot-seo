@@ -1,0 +1,37 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+    # Bug-class catchers added to close gaps that let real defects ship:
+    - errorlint # sentinel comparisons (err == X) instead of errors.Is/As
+    - gosec # insecure file modes, SSRF, weak crypto, etc.
+    - bodyclose # unclosed http.Response.Body
+    - sqlclosecheck # unclosed sql.Rows/Stmt
+    - rowserrcheck # missing rows.Err() after iteration
+  settings:
+    gosec:
+      excludes:
+        # G304: file inclusion via variable. All such paths are our own config /
+        # db / token files (operator-trusted), never attacker-controlled web input.
+        - G304
+        # G115: integer overflow on conversion. The only hits are the deliberate
+        # uint64<->int64 round-trip storing a content simhash in a sqlite INTEGER.
+        - G115
+  exclusions:
+    rules:
+      # Test fixtures don't need production-grade file modes or cookie flags.
+      - path: _test\.go
+        linters:
+          - gosec
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

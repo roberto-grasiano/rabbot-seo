@@ -1,0 +1,57 @@
+# config.yaml — Rabbot-SEO
+data_dir: ""                 # default per-OS (XDG / Application Support / LocalAppData)
+
+control:
+  port: 7777                 # control API binds 127.0.0.1:7777
+
+log:
+  level: info
+  file: ""                   # "" => journald/EventLog/stdout; else lumberjack rotation
+
+crawler:
+  user_agent: ""                   # "" => Rabbot-SEO/<ver> (+mailto:<contact_email>; per-site trust signal)
+  contact_email: you@example.com   # MANDATORY — a valid email; shown in the crawler User-Agent
+  egress_check_enabled: true
+  egress_check_endpoint: "https://api.ipify.org"
+
+defaults:
+  min_interval: 10m
+  max_interval: 24h
+  per_host_concurrency: 2
+  per_host_rate: 2s
+  speed_scale: 100
+
+sites:
+  - url: https://example.com
+    name: Example
+    segments:
+      - name: blog
+        match: "^/blog/"
+    access:
+      headers:
+        X-Rabbot-Token: ${EXAMPLE_WAF_TOKEN}
+      basic_user: ""
+      basic_pass: ""
+      proxy_url: ""          # optional single static-egress proxy (IP-whitelisting only)
+
+notifiers:
+  - name: slack-critical
+    type: slack-webhook
+    url: ${SLACK_WEBHOOK_CRITICAL}
+  - name: slack-digest
+    type: slack-webhook
+    url: ${SLACK_WEBHOOK_DIGEST}
+
+routes:
+  - match: { severity: critical }
+    notifier: slack-critical
+  - match: {}                # fallback
+    notifier: slack-digest
+
+alerting:
+  dedup_window: 5m
+  per_recipient_hourly_cap: 30
+  incident_auto_close_after: 24h
+  digest:
+    schedule: 1h
+    severities: [info, warning]

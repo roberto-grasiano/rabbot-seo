@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("<urlset><url><loc>https://example.com/i</loc><priority>Inf</priority></url></urlset>")

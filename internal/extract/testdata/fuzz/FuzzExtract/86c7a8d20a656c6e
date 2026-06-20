@@ -1,0 +1,4 @@
+go test fuzz v1
+[]byte("0<A>0<A>0<A>0\xbe\x16\x16>0<A>")
+string(" ")
+string("")

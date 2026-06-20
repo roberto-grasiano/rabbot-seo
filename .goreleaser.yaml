@@ -1,0 +1,161 @@
+version: 2
+
+project_name: rabbot-seo
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: rabbot
+    main: ./cmd/rabbot
+    binary: rabbot
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    # Reproducible builds: stamp the binary with the commit time, not build time.
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+# --- Supply-chain provenance: SBOMs + keyless signatures ---------------------
+# One SPDX-JSON SBOM per archive (syft). Keyless cosign signs checksums.txt as a
+# Sigstore bundle — that one signature covers every archive transitively, so the
+# whole verification chain is: verify checksums.txt.sigstore.json, then sha256 the
+# archive against checksums.txt. No keys, no secrets: GitHub OIDC (id-token: write)
+# → Fulcio cert → Rekor public transparency log. `make snapshot` skips the signing
+# (it would need an interactive OIDC browser flow); the full sign path is rehearsed
+# by the v0.1.0-rc1 tag in CI. syft must be on PATH for the sboms pipe (CI installs
+# it; locally it's a documented `make snapshot` prereq — see docs/RELEASING.md).
+sboms:
+  - artifacts: archive
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - "sign-blob"
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-snapshot"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+# --- Homebrew cask (macOS Intel + Apple Silicon) -----------------------------
+# Publishes a cask to roberto-grasiano/homebrew-rabbot-seo on each release (a cask,
+# not a formula, because we ship a prebuilt binary). Requires a PAT with repo
+# scope on the tap, passed as TAP_GITHUB_TOKEN (the default GITHUB_TOKEN cannot
+# push to a different repository). Linux users: use install.sh / go install / docker.
+homebrew_casks:
+  - name: rabbot
+    repository:
+      owner: roberto-grasiano
+      name: homebrew-rabbot-seo
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    homepage: "https://github.com/roberto-grasiano/rabbot-seo"
+    description: "Real-time SEO monitoring gateway — a single static Go binary that watches your site 24/7 and alerts you in Slack."
+    # Skip auto-PRs for snapshot/prerelease builds.
+    skip_upload: auto
+    # The binary carries a Sigstore signature (supply-chain provenance) but is
+    # NOT Apple-notarized, so strip the macOS quarantine bit on install so
+    # Gatekeeper doesn't block the first launch.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/rabbot"]
+          end
+
+# --- Scoop bucket (Windows) --------------------------------------------------
+# Publishes a manifest to roberto-grasiano/scoop-rabbot-seo on each release.
+scoops:
+  - name: rabbot
+    repository:
+      owner: roberto-grasiano
+      name: scoop-rabbot-seo
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    homepage: "https://github.com/roberto-grasiano/rabbot-seo"
+    description: "Real-time SEO monitoring gateway — a single static Go binary."
+    license: "AGPL-3.0"
+    skip_upload: auto
+
+# --- Docker images (multi-arch: linux/amd64 + linux/arm64) -------------------
+# Built from Dockerfile.goreleaser (COPYs the prebuilt static binary into
+# gcr.io/distroless/static:nonroot). Pushed to GitHub Container Registry as a
+# single multi-arch manifest. Requires Docker buildx (set up in CI).
+dockers_v2:
+  - id: rabbot
+    images:
+      - "ghcr.io/roberto-grasiano/rabbot-seo"
+    tags:
+      - "{{ .Version }}"
+      # Don't move :latest for prerelease tags (e.g. v0.1.0-rc1); empty = skipped.
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    dockerfile: Dockerfile.goreleaser
+    labels:
+      org.opencontainers.image.title: "rabbot-seo"
+      org.opencontainers.image.source: "https://github.com/roberto-grasiano/rabbot-seo"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.licenses: "AGPL-3.0"
+
+# Keyless-sign the pushed image by digest (same OIDC → Fulcio → Rekor anchor as the
+# blob signature above). artifacts: all signs BOTH the per-arch images AND the manifest
+# list, so `cosign verify <tag>` — which resolves a tag to the manifest — succeeds; the
+# default ('' = dockers_v2 images) is drift-prone on whether it covers the manifest, and
+# the manifest is exactly what the verify recipe in docs/RELEASING.md checks. Not
+# exercised by `make snapshot` (docker is skipped); the v0.1.0-rc1 tag rehearses it in CI.
+docker_signs:
+  - cmd: cosign
+    artifacts: all
+    args:
+      - "sign"
+      - "${artifact}@${digest}"
+      - "--yes"
+    output: true
+
+release:
+  # The tag creates a DRAFT GitHub Release: review the notes + artifacts, then
+  # click "Publish" to make it the "latest" release that install.sh / brew read.
+  # (Docker images and the tap/bucket PRs are pushed immediately on tag.)
+  header: |
+    📖 Full release narrative: see the [CHANGELOG](https://github.com/roberto-grasiano/rabbot-seo/blob/main/CHANGELOG.md).
+  draft: true

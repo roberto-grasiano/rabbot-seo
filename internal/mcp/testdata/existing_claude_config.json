@@ -1,0 +1,12 @@
+{
+  "unrelatedTopLevelKey": {
+    "keepMe": true,
+    "nested": ["a", "b"]
+  },
+  "mcpServers": {
+    "some-other-server": {
+      "command": "/usr/local/bin/other",
+      "args": ["serve", "--flag"]
+    }
+  }
+}

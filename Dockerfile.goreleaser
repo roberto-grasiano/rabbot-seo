@@ -1,0 +1,11 @@
+# Dockerfile used by GoReleaser (dockers_v2, multi-platform). GoReleaser places
+# the per-platform static binary under <os>/<arch>/ in the build context, so we
+# COPY by $TARGETPLATFORM into a minimal, nonroot distroless image. For a plain
+# `docker build .` from source, use the top-level ./Dockerfile instead.
+FROM gcr.io/distroless/static:nonroot
+ARG TARGETPLATFORM
+COPY ${TARGETPLATFORM}/rabbot /usr/bin/rabbot
+USER nonroot:nonroot
+# Control plane binds 127.0.0.1 inside the container only; nothing is published.
+ENTRYPOINT ["/usr/bin/rabbot"]
+CMD ["run"]

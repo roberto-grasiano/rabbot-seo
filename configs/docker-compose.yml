@@ -1,0 +1,20 @@
+services:
+  rabbot:
+    image: ghcr.io/OWNER/rabbot-seo:latest
+    container_name: rabbot
+    restart: unless-stopped
+    command: ["run"]
+    environment:
+      - RABBOT_DATA_DIR=/data
+      # The binary resolves config from os.UserConfigDir()/rabbot/config.yaml.
+      # On Linux that honors XDG_CONFIG_HOME, so point it at the mount root below
+      # and mount the example config to <XDG_CONFIG_HOME>/rabbot/config.yaml.
+      - XDG_CONFIG_HOME=/config
+      # Secrets are injected via env (never committed) and are ${ENV}-interpolated
+      # into config.yaml at load:
+      # - SLACK_WEBHOOK_CRITICAL=...
+      # - SLACK_WEBHOOK_DIGEST=...
+      # - EXAMPLE_WAF_TOKEN=...
+    volumes:
+      - ./data:/data
+      - ./config.yaml:/config/rabbot/config.yaml:ro

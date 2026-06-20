@@ -1,0 +1,22 @@
+[Unit]
+Description=Rabbot-SEO real-time SEO monitoring gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rabbot
+Group=rabbot
+ExecStart=/usr/bin/rabbot run
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+WorkingDirectory=/var/lib/rabbot
+EnvironmentFile=-/etc/rabbot/rabbot.env
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/rabbot
+
+[Install]
+WantedBy=multi-user.target

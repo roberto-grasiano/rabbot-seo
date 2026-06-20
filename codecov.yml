@@ -1,0 +1,33 @@
+# Codecov configuration.
+#
+# PROJECT coverage stays INFORMATIONAL — whole-repo drift posts a neutral delta
+# comment and never reds a PR. PATCH coverage is a GATE: every PR must cover at
+# least `target` of its OWN new/changed lines, so untested *product* code can't
+# slip in behind a green check (the failure mode this repo kept waving through).
+#
+# The CI required check stays `ci` (the aggregator job). To make a failing patch
+# status actually BLOCK merge, add `codecov/patch` to the branch-protection
+# required checks — until then it is a visible, honest red/green you act on.
+coverage:
+  status:
+    project:
+      default:
+        informational: true        # whole-repo drift: neutral, never reds a PR
+    patch:
+      default:
+        target: 85%                 # a PR must cover >= 85% of its own new lines
+        threshold: 0%               # no slack below target
+        informational: false        # GATE: post a real pass/fail patch status
+
+# scripts/bench/ is dev-only tooling — the synthetic corpus server, the capacity
+# harness, the CSV->SVG renderer, and the build-tagged bench daemon. It is NEVER
+# shipped (goreleaser builds only ./cmd/rabbot). Its tests still run in CI as
+# regression guards, but its main()/run()/ticker wiring is excluded here so the
+# coverage percentage reflects product code, not un-unit-testable plumbing.
+ignore:
+  - "scripts/bench/**"
+
+# Only the ubuntu leg uploads a profile, so there is nothing to merge across
+# OSes; tolerate the single report without waiting for others.
+comment:
+  require_changes: false

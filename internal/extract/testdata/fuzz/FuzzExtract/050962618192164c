@@ -1,0 +1,4 @@
+go test fuzz v1
+[]byte("\x81\xf4 \"B")
+string("hhh8888\x10h")
+string("")
