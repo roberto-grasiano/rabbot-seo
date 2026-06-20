@@ -53,9 +53,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Keyless signing + SBOMs: GoReleaser shells out to cosign and syft, which
-      # are not preinstalled on the runner. Pinned by major version (repo house
-      # style). cosign uses the job's OIDC token (id-token: write) — no key material.
-      - uses: sigstore/cosign-installer@v4
+      # are not preinstalled on the runner. Pinned to the maintained major tag —
+      # cosign-installer publishes v2/v3 moving majors (there is NO v4 major tag;
+      # v4.x exist only as specific tags). cosign uses the job's OIDC token
+      # (id-token: write) — no key material.
+      - uses: sigstore/cosign-installer@v3
       - uses: anchore/sbom-action/download-syft@v0
 
       - uses: goreleaser/goreleaser-action@v7
