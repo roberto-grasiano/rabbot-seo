@@ -19,8 +19,11 @@ permissions:
 jobs:
   close:
     runs-on: ubuntu-latest
-    # Skip the maintainer's own PRs; only act on outside contributors.
+    # Skip the maintainer's own PRs AND Dependabot — its dependency-update PRs are the
+    # maintainer's own automation, not an outside human contribution. Only act on
+    # outside human contributors.
     if: >-
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
       github.event.pull_request.author_association != 'OWNER' &&
       github.event.pull_request.author_association != 'MEMBER' &&
       github.event.pull_request.author_association != 'COLLABORATOR'
