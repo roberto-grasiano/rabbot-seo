@@ -8,10 +8,11 @@ and pings your Slack the moment a page regresses.**
 [![Release](https://img.shields.io/github/v/release/roberto-grasiano/rabbot-seo?style=flat&color=6366F1)](https://github.com/roberto-grasiano/rabbot-seo/releases)
 [![Build](https://img.shields.io/github/actions/workflow/status/roberto-grasiano/rabbot-seo/ci.yaml?branch=main&style=flat&label=build)](https://github.com/roberto-grasiano/rabbot-seo/actions/workflows/ci.yaml)
 [![Coverage](https://img.shields.io/codecov/c/github/roberto-grasiano/rabbot-seo?style=flat)](https://codecov.io/gh/roberto-grasiano/rabbot-seo)
-[![Go Report Card](https://goreportcard.com/badge/github.com/roberto-grasiano/rabbot-seo?style=flat)](https://goreportcard.com/report/github.com/roberto-grasiano/rabbot-seo)
+[![Go Report Card](https://goreportcard.com/badge/github.com/roberto-grasiano/rabbot-seo?style=flat&v=2)](https://goreportcard.com/report/github.com/roberto-grasiano/rabbot-seo)
 [![Go Reference](https://pkg.go.dev/badge/github.com/roberto-grasiano/rabbot-seo.svg)](https://pkg.go.dev/github.com/roberto-grasiano/rabbot-seo)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-6366F1?style=flat)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platforms-macOS_%7C_Linux_%7C_Windows-94A3B8?style=flat)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-FFDD00?style=flat&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/robertograsiano)
 
 </div>
 
