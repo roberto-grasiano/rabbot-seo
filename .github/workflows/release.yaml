@@ -31,7 +31,7 @@ jobs:
         with:
           fetch-depth: 0 # full history so the changelog/previous-tag works
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           # Release binaries MUST be built on Go >= 1.26.4 to clear the reachable
           # stdlib CVEs GO-2026-5039 (net/textproto) and GO-2026-5037
