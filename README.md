@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="assets/rabbot-banner.png" alt="Rabbot-SEO" width="720">
-
 **A little robot rabbit that watches your SEO so you don't have to —
 and pings your Slack the moment a page regresses.**
 
@@ -15,6 +13,16 @@ and pings your Slack the moment a page regresses.**
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-FFDD00?style=flat&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/robertograsiano)
 
 </div>
+
+<b>#DISCLAIMER#</b>
+
+This is the public version of Shopify App https://apps.shopify.com/rabbot 
+
+This version is simpler and more generic than the official app, and you can use it on any website. 
+
+The official site is https://rabbot.ai/. Loads of documentation and good information, check it out!
+
+---------------------------------------------------------------------------------------------------
 
 Rabbot-SEO is a single small Go binary that keeps an eye on your site around the clock. When
 something that quietly wrecks your search ranking changes — a page slips to `noindex`, a
