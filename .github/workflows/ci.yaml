@@ -44,7 +44,7 @@ jobs:
       # Cache the compiled binary so `go install` is skipped on hits. The key
       # pins golangci-lint + Go versions, so it only rebuilds when either bumps.
       - name: Cache golangci-lint binary
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/go/bin/golangci-lint
           key: golangci-lint-2.12.2-go1.26.4-${{ runner.os }}
