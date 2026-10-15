@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           # >= 1.26.4 clears reachable stdlib CVEs GO-2026-5039 (net/textproto)
           # and GO-2026-5037 (crypto/x509), both reached via the control server's
@@ -97,7 +97,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           # >= 1.26.4 clears reachable stdlib CVEs GO-2026-5039 (net/textproto)
           # and GO-2026-5037 (crypto/x509), both reached via the control server's
@@ -174,7 +174,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           # >= 1.26.4 clears reachable stdlib CVEs GO-2026-5039 (net/textproto)
           # and GO-2026-5037 (crypto/x509), both reached via the control server's
@@ -210,7 +210,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           # >= 1.26.4 clears reachable stdlib CVEs GO-2026-5039 (net/textproto)
           # and GO-2026-5037 (crypto/x509), both reached via the control server's
